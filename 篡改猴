@@ -1,0 +1,84 @@
+1. 打开浏览器开发者模式
+2. 粘贴下面代码
+https://drive.google.com/file/d/1k1I-kDve1F0Z58Z_HXdxwcPNlnh6PpeB/view?usp=sharing
+// ==UserScript==
+// @name         定时随机点击按钮
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  在特定页面上定时点击某个按钮（带随机间隔）
+// @author       You
+// @match        *://*.cloudworkstations.dev/*vnc.html*
+// @grant        GM_log
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    function randomDelay(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function logWithTime(msg) {
+        const now = new Date().toLocaleString();
+        console.log(`[${now}] ${msg}`);
+    }
+
+    function clickButton() {
+        // 查找按钮
+        const button = document.querySelector('div[title="显示/隐藏控制栏"]');
+
+        if (button) {
+            logWithTime('🎯 找到按钮，尝试触发 mousedown 和 mouseup 事件...');
+
+            try {
+                button.focus();
+                logWithTime('🔍 已聚焦按钮');
+                const downEvent = new MouseEvent('mousedown', {
+                    bubbles: true,
+                    cancelable: true,
+                    button: 0
+                });
+                button.dispatchEvent(downEvent);
+                logWithTime('✅ mousedown 事件已派发。');
+
+                setTimeout(() => {
+                    const upEvent = new MouseEvent('mouseup', {
+                        bubbles: true,
+                        cancelable: true,
+                        button: 0
+                    });
+                    button.dispatchEvent(upEvent);
+                    logWithTime('✅ mouseup 事件已派发。');
+
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        button: 0
+                    });
+                    button.dispatchEvent(clickEvent);
+                    logWithTime('✅ click 事件也已派发 (在 mouseup 后)。');
+
+                }, 50);
+
+            } catch (e) {
+                logWithTime('❌ 派发事件时出错: ' + e);
+            }
+
+        } else {
+            logWithTime('⚠️ 未找到按钮。');
+        }
+
+        const nextDelay = randomDelay(1 * 60 * 1000, 3 * 60 * 1000); // 1-3 分钟
+        logWithTime(`⏳ 下一次点击将在 ${(nextDelay / 1000 / 60).toFixed(1)} 分钟后`);
+        setTimeout(clickButton, nextDelay);
+    }
+
+    window.addEventListener('load', function () {
+        GM_log(`[${new Date().toLocaleString()}] 页面加载完成 (window.onload)，将启动首次点击定时器...`);
+        const initialDelay = randomDelay(1000, 3000);
+        GM_log(`[${new Date().toLocaleString()}] 🚀 初始延迟 ${initialDelay}ms 后进行首次点击尝试`);
+        setTimeout(clickButton, initialDelay);
+    });
+
+    GM_log(`[${new Date().toLocaleString()}] noVNC 点击脚本已注入，等待页面加载完成...`);
+})();
